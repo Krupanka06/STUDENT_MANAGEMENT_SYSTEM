@@ -1,0 +1,3 @@
+STUDENT|1001|Default Student|student123|student@example.edu|CSE|1|0.00|0.00
+STUDENT|1002|New Student|pass123|new@student.com|CS|2|0.00|0.00
+STUDENT|1003|Krupanka R|1234|krupankaramesha@gmail.com|ECE|2|0.00|0.00

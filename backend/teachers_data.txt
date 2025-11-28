@@ -1,0 +1,6 @@
+TEACHER|2004|Pending Teacher|pass123|pending@teacher.com|Math|1|2025-11-28 01:27:59
+TEACHER|2003|Krupanka R|1234|rkrupanka.cs25@rvce.edu.in|CSE|1|2025-11-28 19:22:09
+TEACHER|2001|Krupanka R|1234|krupankaramesha@gmail.com|CSE|-1|2025-11-28 19:22:30
+TEACHER|2001|Demo Teacher|teacher123|demo.teacher@example.edu|Physics|0|€‚ƒ„…†‡ˆ‰š‹œ‘’“”•–—˜™š›œÿ ¡¢£¤¥¦§¨©ª«¬­®¯°
+TEACHER|2002|New Teacher|teach123|new@teacher.com|CS|1|2025-11-28 01:20:36
+TEACHER|2005|Krupanka R|1234|nithishsnithishs44@gmail.com|CSE|1|2025-11-28 19:22:27
