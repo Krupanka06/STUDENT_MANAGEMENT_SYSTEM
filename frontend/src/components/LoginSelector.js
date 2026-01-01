@@ -10,14 +10,18 @@ const LoginSelector = ({ onLogin, onRegisterClick, showMessage }) => {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [inlineError, setInlineError] = useState('');
+  const [shake, setShake] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCredentials(prev => ({ ...prev, [name]: value }));
+    if (inlineError) setInlineError('');
   };
 
   const handleLogin = async () => {
     setLoading(true);
+    setInlineError('');
     try {
       let endpoint = '';
       let body = {};
@@ -60,7 +64,13 @@ const LoginSelector = ({ onLogin, onRegisterClick, showMessage }) => {
         onLogin(selectedRole, data);
         setCredentials({ studentId: '', email: '', password: '' });
       } else {
-        showMessage(data.error || 'Login failed', 'error');
+        if (response.status === 401) {
+          setInlineError('Incorrect email or password');
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        } else {
+          showMessage(data.error || 'Login failed', 'error');
+        }
       }
     } catch (error) {
       showMessage('Connection error. Is server running?', 'error');
@@ -116,7 +126,7 @@ const LoginSelector = ({ onLogin, onRegisterClick, showMessage }) => {
               <button
                 key={role}
                 className={`role-tab ${selectedRole === role ? 'active' : ''}`}
-                onClick={() => setSelectedRole(role)}
+                onClick={() => { setSelectedRole(role); setInlineError(''); }}
                 title={`${role.charAt(0).toUpperCase() + role.slice(1)} Login`}
               >
                 <span className="tab-icon">
@@ -132,7 +142,7 @@ const LoginSelector = ({ onLogin, onRegisterClick, showMessage }) => {
           </div>
 
           {/* Form Inputs */}
-          <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+          <form className={`login-form ${shake ? 'shake' : ''}`} onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
             {selectedRole === 'student' && (
               <div className="form-group">
                 <label htmlFor="studentId">Student ID</label>
@@ -186,6 +196,9 @@ const LoginSelector = ({ onLogin, onRegisterClick, showMessage }) => {
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              {inlineError && (
+                <div className="inline-error" role="alert" aria-live="assertive">{inlineError}</div>
+              )}
             </div>
 
             <button

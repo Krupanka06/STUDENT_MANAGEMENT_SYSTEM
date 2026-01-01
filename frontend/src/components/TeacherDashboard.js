@@ -1,19 +1,40 @@
 import { useEffect, useState } from 'react';
+import AcademicEditor from './AcademicEditor';
+import ManageSubjectsModal from './ManageSubjectsModal';
 
 const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
+  const [teacher, setTeacher] = useState(teacherData || {});
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
+    refreshTeacher();
     fetchStudents();
   }, []);
+
+  const refreshTeacher = async () => {
+    if (!teacherData?.teacherId) return;
+    try {
+      const res = await fetch(`http://localhost:8080/api/teacher/${teacherData.teacherId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTeacher(data);
+      }
+    } catch (e) {
+      // silent
+    }
+  };
 
   const fetchStudents = async () => {
     try {
       const response = await fetch('http://localhost:8080/api/students', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'teacher', department: teacherData?.department || teacher?.department, email: teacherData?.email || teacher?.email })
       });
       if (response.ok) {
         const data = await response.json();
@@ -23,6 +44,39 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
       showMessage('Error loading students', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshStudents = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'teacher', department: teacher?.department, email: teacher?.email })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(data);
+      }
+    } catch (error) {
+      console.error('Error refreshing students:', error);
+    }
+  };
+
+  const handleManageSubjects = async (student) => {
+    // Fetch full student data with subjects
+    try {
+      const res = await fetch(`http://localhost:8080/api/students/${student.studentId}?role=teacher&department=${teacher?.department || ''}`);
+      if (res.ok) {
+        const fullStudent = await res.json();
+        setSelectedStudent(fullStudent);
+        setShowModal(true);
+      } else {
+        const errData = await res.json();
+        showMessage(errData.error || 'Failed to load student data', 'error');
+      }
+    } catch (err) {
+      showMessage('Error loading student data', 'error');
     }
   };
 
@@ -153,7 +207,7 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
         <div>
           <div style={statsGridStyle}>
             <div style={statCardStyle}>
-              <div style={statNumberStyle}>{teacherData?.teacherId}</div>
+              <div style={statNumberStyle}>{teacher?.teacherId}</div>
               <div style={statLabelStyle}>Teacher ID</div>
             </div>
             <div style={statCardStyle}>
@@ -161,7 +215,7 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
               <div style={statLabelStyle}>Total Students</div>
             </div>
             <div style={statCardStyle}>
-              <div style={statNumberStyle}>{teacherData?.approved === 1 ? '✓' : '⏳'}</div>
+              <div style={statNumberStyle}>{teacher?.approved === 1 ? '✓' : (teacher?.approved === -1 ? '✕' : '⏳')}</div>
               <div style={statLabelStyle}>Approval Status</div>
             </div>
           </div>
@@ -171,16 +225,16 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
               📋 Profile Information
             </h3>
             <p style={{ fontSize: '14px', color: '#666', margin: '8px 0' }}>
-              <strong>Name:</strong> {teacherData?.name}
+              <strong>Name:</strong> {teacher?.name}
             </p>
             <p style={{ fontSize: '14px', color: '#666', margin: '8px 0' }}>
-              <strong>Email:</strong> {teacherData?.email}
+              <strong>Email:</strong> {teacher?.email}
             </p>
             <p style={{ fontSize: '14px', color: '#666', margin: '8px 0' }}>
-              <strong>Department:</strong> {teacherData?.department}
+              <strong>Department:</strong> {teacher?.department}
             </p>
             <p style={{ fontSize: '14px', color: '#666', margin: '8px 0' }}>
-              <strong>Status:</strong> {teacherData?.approved === 1 ? '✓ Approved' : teacherData?.approved === 0 ? '⏳ Pending Approval' : '✕ Rejected'}
+              <strong>Status:</strong> {teacher?.approved === 1 ? '✓ Approved' : teacher?.approved === 0 ? '⏳ Pending Approval' : '✕ Rejected'}
             </p>
           </div>
         </div>
@@ -195,44 +249,129 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
             <p style={{ textAlign: 'center', color: '#666' }}>Loading...</p>
           ) : students.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-              No students registered yet
+              No students for your department yet
             </p>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={studentTableStyle}>
-                <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    <th style={thStyle}>ID</th>
-                    <th style={thStyle}>Name</th>
-                    <th style={thStyle}>Email</th>
-                    <th style={thStyle}>Department</th>
-                    <th style={thStyle}>Year</th>
-                    <th style={thStyle}>CGPA</th>
-                    <th style={thStyle}>Attendance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map(student => (
-                    <tr key={student.studentId} style={{ background: 'white' }}>
-                      <td style={tdStyle}><strong>#{student.studentId}</strong></td>
-                      <td style={tdStyle}>{student.name}</td>
-                      <td style={tdStyle}>{student.email}</td>
-                      <td style={tdStyle}>
-                        <span style={badgeStyle(student.department)}>
-                          {student.department}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>Year {student.year}</td>
-                      <td style={tdStyle}><strong>{student.cgpa.toFixed(2)}</strong></td>
-                      <td style={tdStyle}><strong>{student.attendance.toFixed(1)}%</strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              {students.map(student => (
+                <div key={student.studentId} style={{ marginBottom: '20px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#f9fafb' }}>
+                  <div
+                    onClick={() => setExpandedStudent(expandedStudent === student.studentId ? null : student.studentId)}
+                    style={{
+                      padding: '15px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#f9fafb',
+                      borderRadius: '10px 10px 0 0',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: '0 0 5px 0', fontSize: '15px', fontWeight: '600', color: '#333' }}>
+                        {student.name} <span style={{ fontSize: '12px', color: '#999' }}>#{student.studentId}</span>
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                        {student.email} • Year {student.year} • <span style={badgeStyle(student.department)}>{student.department}</span>
+                      </p>
+                    </div>
+                    <div style={{ fontSize: '20px' }}>
+                      {expandedStudent === student.studentId ? '▼' : '▶'}
+                    </div>
+                  </div>
+
+                  {expandedStudent === student.studentId && (
+                    <div style={{ padding: '20px', borderTop: '1px solid #e5e7eb' }}>
+                      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => handleManageSubjects(student)}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          📚 Manage Subjects
+                        </button>
+                      </div>
+
+                      <div style={{ marginBottom: '20px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '10px' }}>
+                          📊 Overall Performance
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                          <div style={{ background: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>CGPA</div>
+                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#667eea' }}>
+                              {student.cgpa?.toFixed(2) || 'N/A'}
+                            </div>
+                          </div>
+                          <div style={{ background: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Attendance</div>
+                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>
+                              {student.attendance?.toFixed(1) || 'N/A'}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {student.subjects && student.subjects.length > 0 ? (
+                        <div>
+                          <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '12px' }}>
+                            📚 Subjects ({student.subjects.length})
+                          </h4>
+                          {student.subjects.map(subject => (
+                            <AcademicEditor
+                              key={subject.subjectId}
+                              subject={subject}
+                              studentId={student.studentId}
+                              userRole="teacher"
+                              teacherEmail={teacher?.email}
+                              onSave={() => refreshStudents()}
+                              showMessage={showMessage}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '13px'
+                        }}>
+                          ℹ️ No subjects assigned to this student yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
+
+      <ManageSubjectsModal
+        isOpen={showModal}
+        student={selectedStudent}
+        teacher={teacher}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedStudent(null);
+        }}
+        onSave={() => {
+          refreshStudents();
+          setShowModal(false);
+          setSelectedStudent(null);
+        }}
+      />
     </div>
   );
 };

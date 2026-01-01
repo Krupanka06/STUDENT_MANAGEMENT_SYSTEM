@@ -701,6 +701,26 @@
   }
 }
 
+/* Inline error + shake animation */
+.inline-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.shake {
+  animation: shake 0.3s linear;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
 
 .login-form-section {
   background: white;

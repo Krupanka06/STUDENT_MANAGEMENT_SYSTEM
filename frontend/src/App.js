@@ -121,6 +121,7 @@ const StudentManagementSystem = () => {
               studentData={userData}
               onLogout={handleLogout}
               showMessage={showMessage}
+              userRole={userRole}
             />
           )}
 

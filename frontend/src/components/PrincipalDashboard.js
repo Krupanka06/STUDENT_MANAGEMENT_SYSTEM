@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import AcademicEditor from './AcademicEditor';
+import ManageSubjectsModal from './ManageSubjectsModal';
 
 const PrincipalDashboard = ({ onLogout, showMessage }) => {
   const [pendingTeachers, setPendingTeachers] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -24,16 +31,43 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
 
       // Fetch all students
       const studentRes = await fetch('http://localhost:8080/api/students', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'principal' })
       });
       if (studentRes.ok) {
         setStudents(await studentRes.json());
+      }
+
+      // Fetch all teachers
+      const allTeachersRes = await fetch('http://localhost:8080/api/teachers', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (allTeachersRes.ok) {
+        setTeachers(await allTeachersRes.json());
       }
     } catch (error) {
       showMessage('Error loading data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManageSubjects = async (student) => {
+    // Fetch full student data with subjects
+    try {
+      const res = await fetch(`http://localhost:8080/api/students/${student.studentId}?role=principal`);
+      if (res.ok) {
+        const fullStudent = await res.json();
+        setSelectedStudent(fullStudent);
+        setShowModal(true);
+      } else {
+        const errData = await res.json();
+        showMessage(errData.error || 'Failed to load student data', 'error');
+      }
+    } catch (err) {
+      showMessage('Error loading student data', 'error');
     }
   };
 
@@ -156,6 +190,17 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
     color: 'white'
   };
 
+  const filteredStudents = useMemo(() => {
+    if (!departmentFilter) return students;
+    return students.filter(s => s.department === departmentFilter);
+  }, [students, departmentFilter]);
+
+  const departments = useMemo(() => {
+    const set = new Set();
+    students.forEach(s => set.add(s.department));
+    return Array.from(set);
+  }, [students]);
+
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -201,10 +246,16 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
           ⏳ Pending Approvals
         </button>
         <button
+          style={tabStyle(activeTab === 'teachers')}
+          onClick={() => setActiveTab('teachers')}
+        >
+          👨‍🏫 Teachers
+        </button>
+        <button
           style={tabStyle(activeTab === 'students')}
           onClick={() => setActiveTab('students')}
         >
-          🎓 All Students
+          🎓 Students
         </button>
       </div>
 
@@ -266,16 +317,29 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
         </div>
       )}
 
-      {activeTab === 'students' && (
+      {activeTab === 'teachers' && (
         <div>
           <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#333' }}>
-            📚 All Students ({students.length})
+            👨‍🏫 All Teachers ({teachers.length})
           </h3>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ fontWeight: '600', marginRight: '8px' }}>Filter by Department:</label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+            >
+              <option value="">All Departments</option>
+              {Array.from(new Set(teachers.map(t => t.department))).map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
           {loading ? (
             <p style={{ textAlign: 'center', color: '#666' }}>Loading...</p>
-          ) : students.length === 0 ? (
+          ) : teachers.filter(t => !departmentFilter || t.department === departmentFilter).length === 0 ? (
             <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-              No students registered yet
+              No teachers in selected department
             </p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -286,21 +350,15 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
                     <th style={thStyle}>Name</th>
                     <th style={thStyle}>Email</th>
                     <th style={thStyle}>Department</th>
-                    <th style={thStyle}>Year</th>
-                    <th style={thStyle}>CGPA</th>
-                    <th style={thStyle}>Attendance</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map(student => (
-                    <tr key={student.studentId}>
-                      <td style={tdStyle}><strong>#{student.studentId}</strong></td>
-                      <td style={tdStyle}>{student.name}</td>
-                      <td style={tdStyle}>{student.email}</td>
-                      <td style={tdStyle}>{student.department}</td>
-                      <td style={tdStyle}>Year {student.year}</td>
-                      <td style={tdStyle}><strong>{student.cgpa.toFixed(2)}</strong></td>
-                      <td style={tdStyle}><strong>{student.attendance.toFixed(1)}%</strong></td>
+                  {teachers.filter(t => !departmentFilter || t.department === departmentFilter).map(teacher => (
+                    <tr key={teacher.teacherId} style={{ background: 'white' }}>
+                      <td style={tdStyle}><strong>#{teacher.teacherId}</strong></td>
+                      <td style={tdStyle}>{teacher.name}</td>
+                      <td style={tdStyle}>{teacher.email}</td>
+                      <td style={tdStyle}>{teacher.department}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -309,6 +367,150 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
           )}
         </div>
       )}
+
+      {activeTab === 'students' && (
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#333' }}>
+            🎓 All Students ({filteredStudents.length})
+          </h3>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ fontWeight: '600', marginRight: '8px' }}>Filter by Department:</label>
+            <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+              <option value="">All Departments</option>
+              {departments.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#666' }}>Loading...</p>
+          ) : filteredStudents.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+              No students registered yet
+            </p>
+          ) : (
+            <div>
+              {filteredStudents.map(student => (
+                <div key={student.studentId} style={{ marginBottom: '15px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#f9fafb' }}>
+                  <div
+                    onClick={() => setExpandedStudent(expandedStudent === student.studentId ? null : student.studentId)}
+                    style={{
+                      padding: '15px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#f9fafb',
+                      borderRadius: '10px 10px 0 0',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: '0 0 5px 0', fontSize: '15px', fontWeight: '600', color: '#333' }}>
+                        {student.name} <span style={{ fontSize: '12px', color: '#999' }}>#{student.studentId}</span>
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                        {student.email} • Year {student.year} • {student.department}
+                      </p>
+                    </div>
+                    <div style={{ fontSize: '20px' }}>
+                      {expandedStudent === student.studentId ? '▼' : '▶'}
+                    </div>
+                  </div>
+
+                  {expandedStudent === student.studentId && (
+                    <div style={{ padding: '20px', borderTop: '1px solid #e5e7eb' }}>
+                      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => handleManageSubjects(student)}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          📚 Manage Subjects
+                        </button>
+                      </div>
+
+                      <div style={{ marginBottom: '20px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '10px' }}>
+                          📊 Overall Performance
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                          <div style={{ background: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>CGPA</div>
+                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#667eea' }}>
+                              {student.cgpa?.toFixed(2) || 'N/A'}
+                            </div>
+                          </div>
+                          <div style={{ background: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Attendance</div>
+                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>
+                              {student.attendance?.toFixed(1) || 'N/A'}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {student.subjects && student.subjects.length > 0 ? (
+                        <div>
+                          <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '12px' }}>
+                            📚 Subjects ({student.subjects.length})
+                          </h4>
+                          {student.subjects.map(subject => (
+                            <AcademicEditor
+                              key={subject.subjectId}
+                              subject={subject}
+                              studentId={student.studentId}
+                              userRole="principal"
+                              onSave={() => {
+                                // Refresh students list
+                                fetchData();
+                              }}
+                              showMessage={showMessage}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '13px'
+                        }}>
+                          ℹ️ No subjects assigned to this student yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <ManageSubjectsModal
+        isOpen={showModal}
+        student={selectedStudent}
+        teacher={{ email: 'principal@admin.com', password: 'principal123' }}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedStudent(null);
+        }}
+        onSave={() => {
+          fetchData();
+          setShowModal(false);
+          setSelectedStudent(null);
+        }}
+      />
     </div>
   );
 };

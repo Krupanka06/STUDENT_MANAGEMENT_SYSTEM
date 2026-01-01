@@ -1,3 +1,5 @@
-STUDENT|1001|Default Student|student123|student@example.edu|CSE|1|0.00|0.00
-STUDENT|1002|New Student|pass123|new@student.com|CS|2|0.00|0.00
-STUDENT|1003|Krupanka R|1234|krupankaramesha@gmail.com|ECE|2|0.00|0.00
+STUDENT|1002|kruuupankaaaa|12345|ttjs@gmail.com|CSE|3|1|0.00|0.00
+STUDENT|1003|Krupanka R|1234|krupankaramesha@gmail.com|ECE|2|0|0.00|0.00
+STUDENT|1002|New Student|pass123|new@student.com|CS|2|0|0.00|0.00
+STUDENT|1001|Default Student|student123|student@example.edu|CSE|1|0|0.00|0.00
+STUDENT|1001|arun|arun|arun123@gmail.com|CSE|3|0|0.00|0.00
