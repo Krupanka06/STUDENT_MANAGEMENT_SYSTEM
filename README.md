@@ -380,6 +380,9 @@ set PORT=3001 && npm start
 ## 👥 Contributors
 
 - Krupanka06
+- Ravi R
+- Nitish S
+- Amith Gowda
 
 ## 📄 License
 
