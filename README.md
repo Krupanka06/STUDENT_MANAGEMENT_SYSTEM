@@ -1,446 +1,401 @@
-# Enhanced Student Management System
+# 🎓 Student Management System
 
-A multi-role student management system with per-subject tracking, teacher approval workflow, and role-based access control. Built with C backend (Winsock2) and React frontend.
+A comprehensive full-stack Student Management System with multi-role authentication and RESTful API architecture. This system enables efficient management of students, teachers, and academic records with role-based access control for Admin, Principal, Teacher, and Student users.
 
-## 🎯 Features
+## 📋 Table of Contents
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Running the Application](#running-the-application)
+- [API Endpoints](#api-endpoints)
+- [Default Credentials](#default-credentials)
+- [Project Structure](#project-structure)
+- [Features by Role](#features-by-role)
 
-- **Multi-Role Authentication**: Student, Teacher, Principal
-- **Per-Subject Tracking**: Track marks and attendance per subject
-  - Mid exams, final exams, and cumulative marks
-  - Per-subject attendance percentage
-  - Teacher remarks per subject
-- **Teacher Approval Workflow**: Teachers register and wait for principal approval
-- **Role-Based Access Control**:
-  - **Students**: View own subjects and marks (read-only)
-  - **Teachers**: Update marks for own department students only
-  - **Principal**: Manage all students and teachers across departments
-- **Department Filtering**: View and manage by department
-- **Modern UI**: Beautiful gradient design with smooth animations and expandable cards
-- **File-Based Persistence**: Automatic data sync to files
+## ✨ Features
 
-## ✨ New Features (v2.0)
+### Multi-Role Authentication System
+- **Admin**: System-wide management and configuration
+- **Principal**: Teacher approval, student overview, and management
+- **Teacher**: Student data management and academic updates
+- **Student**: Personal profile and academic record access
 
-- ✅ Per-subject marks tracking (mid1, mid2, final)
-- ✅ Per-subject attendance percentage
-- ✅ Subject-wise remarks/comments
-- ✅ Department-enforced access (teachers see only own dept)
-- ✅ Expandable student cards for better UX
-- ✅ AcademicEditor component for reusable subject editing
-- ✅ Teachers tab in principal dashboard
-- ✅ Real-time mark updates and persistence
+### Core Functionality
+- 🔐 Secure role-based authentication and authorization
+- 👥 Student registration and profile management
+- 👨‍🏫 Teacher registration with Principal approval workflow
+- 📊 Per-subject academic tracking (Mid1, Mid2, Final exams)
+- 📈 Attendance tracking per subject
+- 🎯 CGPA calculation and monitoring
+- 📝 Academic remarks and feedback system
+- 💾 File-based persistent data storage
+- 🌐 RESTful API architecture with CORS support
 
-## 📋 Default Credentials
+## 🛠️ Tech Stack
 
-### Students
-| ID | Password | Department |
-|-----|----------|-----------|
-| 1001 | student123 | CSE |
+### Backend
+- **Language**: C
+- **Server**: Custom HTTP server using Winsock2 (Windows Sockets API)
+- **Port**: 8080
+- **Data Storage**: Text-based file system (students_data.txt, teachers_data.txt, approvals.txt)
+- **API**: RESTful endpoints with JSON responses
 
-### Teachers
-| Email | Password | Department | Status |
-|-------|----------|-----------|--------|
-| ramesh@college.edu | cse_teacher | CSE | Approved |
-| sneha@college.edu | ec_teacher | ECE | Approved |
-| vikram@college.edu | civil_teacher | CIVIL | Approved |
+### Frontend
+- **Framework**: React 19.2.0
+- **Styling**: CSS3 with gradient designs
+- **State Management**: React Hooks
+- **Build Tool**: Create React App (react-scripts 5.0.1)
+- **Testing**: Jest & React Testing Library
+- **Port**: 3000 (development)
 
-### Principal
-| Password |
-|----------|
-| principal123 |
+## 🏗️ System Architecture
 
-See [SAMPLE_DATA.md](SAMPLE_DATA.md) for additional test accounts.
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Windows** with MinGW (gcc) installed
-- **Node.js** 12+ and npm
-- **Visual Studio Code** (optional)
-
-### Installation & Running
-
-**Terminal 1 - Backend Server:**
-```bash
-cd backend
-gcc -o student_server student_server_enhanced.c -lws2_32
-student_server.exe
+```
+┌─────────────────────────────────────────────────┐
+│          React Frontend (Port 3000)             │
+│  - LoginSelector  - StudentDashboard            │
+│  - TeacherDashboard - PrincipalDashboard        │
+│  - AdminPanel - Registration Forms              │
+└──────────────────┬──────────────────────────────┘
+                   │ HTTP/REST API
+                   │
+┌──────────────────▼──────────────────────────────┐
+│          C Backend Server (Port 8080)           │
+│  - Request Handler - Authentication             │
+│  - CRUD Operations - File Management            │
+└──────────────────┬──────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────┐
+│          File-based Storage                     │
+│  - students_data.txt - teachers_data.txt        │
+│  - approvals.txt - system_meta.txt              │
+└─────────────────────────────────────────────────┘
 ```
 
-**Terminal 2 - Frontend:**
+## 📦 Prerequisites
+
+### Backend Requirements
+- **Windows OS** (uses Winsock2 API)
+- **GCC Compiler** (MinGW-w64 recommended)
+- Port 8080 available
+
+### Frontend Requirements
+- **Node.js** (v14 or higher)
+- **npm** (v6 or higher)
+- Port 3000 available
+
+## 🚀 Installation
+
+### Clone the Repository
+```bash
+git clone https://github.com/Krupanka06/STUDENT_MANAGEMENT_SYSTEM.git
+cd STUDENT_MANAGEMENT_SYSTEM
+```
+
+### Backend Setup
+
+1. Navigate to the backend directory:
+```bash
+cd backend
+```
+
+2. Compile the server using GCC:
+```bash
+gcc -o student_server_enhanced.exe student_server_enhanced.c -lws2_32
+```
+
+**Note**: The `-lws2_32` flag links the Windows Socket library required for networking.
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
 ```bash
 cd frontend
+```
+
+2. Install dependencies:
+```bash
 npm install
+```
+
+This will install all required packages including:
+- React and React-DOM
+- Testing libraries
+- Web vitals
+- And all other dependencies listed in package.json
+
+## ▶️ Running the Application
+
+### Start the Backend Server
+
+1. Open a terminal/PowerShell in the backend directory
+2. Run the compiled executable:
+```bash
+cd backend
+.\student_server_enhanced.exe
+```
+
+The server will start on `http://localhost:8080` and display:
+```
+=========================================
+  Enhanced Student Management System
+=========================================
+Default Credentials:
+  Admin:     password = admin123
+  Principal: password = principal123
+  Teacher:   password = teacher123
+  Student:   password = student123
+=========================================
+
+Server running on http://localhost:8080
+```
+
+**Important**: Keep this terminal window open while using the application.
+
+### Start the Frontend Application
+
+1. Open a **new** terminal/PowerShell window
+2. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+3. Start the development server:
+```bash
 npm start
 ```
 
-**Open in Browser:**
+The application will automatically open in your default browser at `http://localhost:3000`
+
+If it doesn't open automatically, navigate to: **http://localhost:3000**
+
+### Verify Both Servers are Running
+
+- Backend: `http://localhost:8080` ✅
+- Frontend: `http://localhost:3000` ✅
+
+## 🔑 Default Credentials
+
+### Admin Login
 ```
-http://localhost:3000
+Password: admin123
+```
+
+### Principal Login
+```
+Password: principal123
+```
+
+### Teacher Login (After Registration & Approval)
+```
+Password: teacher123 (or custom during registration)
+```
+
+### Student Login
+```
+Student ID: 1001 (or assigned ID after registration)
+Password: student123 (or custom during registration)
 ```
 
 ## 📂 Project Structure
 
 ```
-Student_Management/
+STUDENT_MANAGEMENT_SYSTEM/
+│
 ├── backend/
-│   ├── student_server_enhanced.c    # Main API server (updated with subjects)
-│   ├── student_server.exe           # Compiled binary
-│   ├── students_data.txt            # Student/subject data
-│   ├── teachers_data.txt            # Teacher records
-│   ├── approvals.txt                # Pending approvals
-│   └── system_meta.txt              # ID counters
+│   ├── student_server_enhanced.c      # Main enhanced server implementation
+│   ├── student_server_enhanced.exe    # Compiled executable
+│   ├── student_server_json.c          # JSON variant
+│   ├── student_server.c               # Basic server
+│   ├── students_data.txt              # Student records storage
+│   ├── teachers_data.txt              # Teacher records storage
+│   ├── approvals.txt                  # Teacher approval tracking
+│   ├── system_meta.txt                # System metadata
+│   └── database.json                  # JSON data storage (if using JSON variant)
 │
-├── frontend/src/components/
-│   ├── AcademicEditor.js           # [NEW] Reusable subject editor
-│   ├── StudentDashboard.js         # [UPDATED] Added Subjects tab
-│   ├── TeacherDashboard.js         # [UPDATED] Expandable students
-│   ├── PrincipalDashboard.js       # [UPDATED] Added Teachers tab
-│   ├── LoginSelector.js            # Multi-role login
-│   ├── StudentLogin.js
-│   ├── StudentRegister.js
-│   └── TeacherRegister.js
+├── frontend/
+│   ├── public/
+│   │   ├── index.html                 # HTML template
+│   │   ├── manifest.json              # PWA manifest
+│   │   └── robots.txt                 # Robots configuration
+│   │
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── LoginSelector.js       # Role selection page
+│   │   │   ├── StudentLogin.js        # Student authentication
+│   │   │   ├── StudentRegister.js     # Student registration form
+│   │   │   ├── TeacherRegister.js     # Teacher registration form
+│   │   │   ├── StudentDashboard.js    # Student interface
+│   │   │   ├── TeacherDashboard.js    # Teacher interface
+│   │   │   ├── PrincipalDashboard.js  # Principal interface
+│   │   │   ├── AdminPanel.js          # Admin interface
+│   │   │   ├── AcademicEditor.js      # Academic data editor
+│   │   │   ├── LandingPage.js         # Landing page
+│   │   │   └── ManageSubjectsModal.js # Subject management modal
+│   │   │
+│   │   ├── styles/
+│   │   │   └── LoginSelector.css      # Styling files
+│   │   │
+│   │   ├── App.js                     # Main application component
+│   │   ├── App.css                    # Application styles
+│   │   ├── index.js                   # Entry point
+│   │   └── index.css                  # Global styles
+│   │
+│   ├── package.json                   # Frontend dependencies
+│   ├── package-lock.json              # Locked dependency versions
+│   └── README.md                      # Frontend documentation
 │
-├── Documentation/
-│   ├── API_DOCUMENTATION.md        # Complete API reference
-│   ├── MIGRATION_GUIDE.md          # Database schema & migration
-│   ├── SAMPLE_DATA.md              # Test data & accounts
-│   ├── TEST_PLAN.md                # Manual test cases
-│   ├── QUICK_START.md              # Quick reference
-│   └── IMPLEMENTATION_SUMMARY.md   # Feature overview
-│
-└── README.md                        # This file
+└── README.md                          # This file
 ```
 
-## 🔐 Role-Based Access Control
+## 🎭 Features by Role
 
-### Student Role
-- View own profile (name, email, department, year)
-- View overall CGPA and attendance
-- **View per-subject marks and attendance (NEW)**
-- Cannot edit any data
+### 👨‍💼 Admin Features
+- System-wide access and management
+- View all users across roles
+- System configuration and maintenance
 
-### Teacher Role
-- View teacher profile
-- **View students from own department only (server-enforced)**
-- **Update marks and attendance for own department students (NEW)**
-- Add remarks for subjects
-- Cannot access other departments
+### 🎓 Principal Features
+- **Teacher Management**
+  - View all teacher registration requests
+  - Approve or reject teacher applications
+  - View approved teacher list
+- **Student Overview**
+  - View all registered students
+  - Monitor student performance across departments
+  - Access student academic records
 
-### Principal Role
-- View all students across all departments
-- **View all approved teachers (NEW)**
-- **Filter by department (NEW)**
-- **Edit any student's marks and remarks (NEW)**
-- Approve/reject new teacher registrations
-- Manage all data
+### 👨‍🏫 Teacher Features
+- **Profile Management**
+  - View personal profile information
+  - Update contact details
+- **Student Management**
+  - View list of students
+  - Access student profiles
+  - Update academic records (marks, attendance)
+  - Add subject-wise remarks
+  - Track student performance
 
-## 📊 Student Dashboard
+### 👨‍🎓 Student Features
+- **Profile Tab**
+  - View personal information
+  - Check enrollment details
+  - View CGPA and overall attendance
+- **Academics Tab**
+  - View subject-wise marks (Mid1, Mid2, Final)
+  - Check subject-wise attendance
+  - Read teacher remarks and feedback
+  - Monitor academic progress
 
-### Tabs
-1. **👤 Profile** - Personal information and student ID
-2. **📊 Academics** - Overall CGPA and attendance
-3. **📚 Subjects (NEW)** - Per-subject marks breakdown and attendance
+## 🌐 API Endpoints
 
-### Subject Details
-- Subject ID and name
-- Mid exam 1, Mid exam 2, Final exam marks
-- Total calculated automatically
-- Attendance percentage with visual indicator
-- Teacher remarks if available
-
-## 👨‍🏫 Teacher Dashboard
-
-### Tabs
-1. **👤 Profile** - Teacher info and approval status
-2. **📚 Students (UPDATED)** - Expandable cards showing:
-   - Student basic info (ID, email, year)
-   - Overall CGPA and attendance
-   - **Subjects list with edit capability (NEW)**
-   - Edit button for each subject
-
-### Subject Editing
-- Click ✏️ Edit on any subject
-- Update mid1, mid2, final marks
-- Update attendance percentage
-- Add optional remarks
-- Confirm with teacher password
-- Changes persist immediately
-
-## 👔 Principal Dashboard
-
-### Tabs
-1. **⏳ Pending Approvals** - Approve/reject teachers (unchanged)
-2. **👨‍🏫 Teachers (NEW)**
-   - View all approved teachers
-   - Filter by department
-   - See teacher contact info
-3. **🎓 Students (UPDATED)**
-   - View all students
-   - **Department filter dropdown (NEW)**
-   - Expandable student cards
-   - **Can edit any student's subjects (NEW)**
-   - Full access control
-
-## 🛠️ API Endpoints
-
-### Modified Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/students/:id` | Get student with subjects |
-| POST | `/api/students` | List students (role-filtered) |
-
-### New Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PUT | `/api/students/:id/subjects/:subjectId` | Update subject marks/attendance |
-| GET | `/api/teachers` | List all teachers (principal only) |
-
-### Authorization Rules
-- **TEACHER**: Returns only own department students. Cross-department access returns 403.
-- **PRINCIPAL**: Returns all students or filtered by department.
-- **STUDENT**: Returns only own data.
-
-See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete details with examples.
-
-## 🔄 Teacher Approval Workflow
-
-1. **Teacher Registers**
-   - Go to login page → Click "Teacher" → Click "Register as Teacher"
-   - Fill name, email, department, password
-   - Account status: pending approval
-
-2. **Principal Reviews**
-   - Login as Principal
-   - Go to "⏳ Pending Approvals" tab
-   - See pending teachers
-   - Click "✓ Approve" or "✕ Reject"
-
-3. **Teacher Accesses System**
-   - Once approved, teacher can login with email and password
-   - Access teacher dashboard
-   - View and edit students from own department
-
-## 📚 Database Schema
-
-### New Subject Structure
+### Authentication Endpoints
 ```
-SUBJECT {
-  subjectId: string        // e.g., "CS101"
-  name: string            // e.g., "Data Structures"
-  marks: {
-    mid1: integer         // First midterm
-    mid2: integer         // Second midterm
-    final: integer        // Final exam
-    total: integer        // Auto-calculated sum
-  }
-  attendance_percent: decimal  // 0-100%
-  remarks: string             // Optional teacher comments
-}
+POST /api/admin/login           # Admin authentication
+POST /api/principal/login       # Principal authentication
+POST /api/teacher/login         # Teacher authentication
+POST /api/student/login         # Student authentication
 ```
-
-See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for detailed schema and migration steps.
-
-## ✅ Testing
-
-### Quick Test (5 minutes)
-1. Load sample data from [SAMPLE_DATA.md](SAMPLE_DATA.md)
-2. Login as student 1001 → view Subjects tab
-3. Login as teacher ramesh@college.edu → edit student 1001's CS101 marks
-4. Login as student 1001 → verify mark changes persisted
-5. Login as principal → select CSE → see updated marks
-
-### Full Test Suite
-See [TEST_PLAN.md](TEST_PLAN.md) for 10 detailed acceptance criteria test cases.
-
-## 📖 Documentation
-
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute setup and key features
-- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference with cURL examples
-- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Database schema and migration steps
-- **[SAMPLE_DATA.md](SAMPLE_DATA.md)** - Test accounts and sample data
-- **[TEST_PLAN.md](TEST_PLAN.md)** - Manual testing procedures (10 test cases)
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Feature overview and architecture
-
-## 🔄 Data Persistence
-
-Data is stored in plain text files in the `backend/` directory:
-- `students_data.txt` - Student records with subjects
-- `teachers_data.txt` - Teacher records
-- `system_meta.txt` - ID counters
-
-**Note:** The system is backward compatible. Old data without subjects will load correctly.
-
-## 🎨 UI/UX Features
-
-- **Expandable Cards**: Click to expand/collapse student details
-- **Progress Bars**: Visual attendance percentage indicators
-- **Department Badges**: Color-coded department labels
-- **Responsive Design**: Works on different screen sizes
-- **Tab Navigation**: Organized information in tabs
-- **Inline Editing**: Edit marks without leaving the page
-- **Real-time Updates**: Changes visible immediately after save
-
-## 🔒 Security
-
-- **Server-Side Authorization**: All checks enforced on backend
-- **Department Enforcement**: Teachers cannot access other departments
-- **Role Validation**: Each endpoint validates user permissions
-- **Password Confirmation**: Required for updates
-- **Input Validation**: Server validates all inputs (marks 0-100, attendance, etc.)
-- **Error Messages**: Descriptive but secure error responses
-
-## 🚀 Performance
-
-- **File-based**: Suitable for small to medium deployments
-- **Optimized**: Minimal network requests
-- **Responsive**: React components update quickly
-- **Scalable**: Can support hundreds of students/teachers
-
-## 📋 Acceptance Criteria - All Implemented ✓
-
-1. ✅ Students view subject-level marks & attendance (read-only)
-2. ✅ Teachers see only students from their department
-3. ✅ Teachers can update marks/attendance for own department
-4. ✅ Teachers CANNOT update other department students
-5. ✅ Principal can view all students and teachers
-6. ✅ Principal can filter by department
-7. ✅ Principal can edit any student's marks
-8. ✅ New student registration visible immediately
-9. ✅ Unauthorized attempts return 403
-10. ✅ Teacher approval workflow unchanged
-
-## 🔄 Version History
-
-- **v1.0** - Initial release with basic CGPA/attendance
-- **v2.0** - Per-subject tracking, department filtering, role-based access control
-
-## 📝 License
-
-Educational Project - RVCE
-
-## 🤝 Contributing
-
-This is a class project. For modifications, please follow the existing code style and test thoroughly.
-
-## 📞 Support
-
-See documentation files for troubleshooting:
-- Issues with setup? → [QUICK_START.md](QUICK_START.md)
-- API questions? → [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
-- Testing? → [TEST_PLAN.md](TEST_PLAN.md)
-- Database questions? → [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
-
-
-### Teacher Endpoints
-- `POST /api/teacher/register` - Register new teacher
-- `POST /api/teacher/login` - Login with email/password
-
-### Principal Endpoints
-- `GET /api/principal/pending-teachers` - Get pending approval list
-- `POST /api/principal/teachers/{id}/approve` - Approve/reject teacher
 
 ### Student Endpoints
-- `POST /api/student/register` - Register new student
-- `POST /api/student/login` - Login with student ID/password
-- `GET /api/students` - Get all students
-
-## 📁 Data Files
-
-### teachers_data.txt
 ```
-TEACHER|{id}|{name}|{password}|{email}|{department}|{approved}|{approvalDate}
-```
-- `approved`: 0=pending, 1=approved, -1=rejected
-
-### students_data.txt
-```
-STUDENT|{id}|{name}|{password}|{email}|{department}|{year}|{cgpa}|{attendance}
+GET  /api/students              # List all students
+GET  /api/students/{id}         # Get student by ID (with subjects)
+POST /api/student/register      # Register new student
+PUT  /api/students/{id}         # Update student details
+PUT  /api/students/{id}/subject/{subjectId}  # Update subject data
 ```
 
-### system_meta.txt
+### Teacher Endpoints
 ```
-nextStudentId|nextTeacherId|nextPrincipalId
-```
-
-### approvals.txt
-Quick reference list of pending teacher IDs (one per line)
-
-## 🎨 Color Scheme
-
-- **Primary**: #1A73E8 (Professional Blue)
-- **Secondary**: #00A8CC (Teal)
-- **Accent**: #19C5FF (Light Blue)
-- **Background**: #F5F9FF (Off White)
-
-## 🧪 Testing Checklist
-
-- [ ] Backend server starts without errors
-- [ ] Frontend loads at http://localhost:3000
-- [ ] Can login as student (ID: 1001)
-- [ ] Can register as teacher
-- [ ] Can login as principal
-- [ ] Can approve pending teachers
-- [ ] Approved teacher can login
-- [ ] Can view student list from teacher dashboard
-- [ ] UI is responsive and looks professional
-
-## 📝 File Format Notes
-
-**Teachers Data Format:**
-```
-TEACHER|2001|John Smith|test@123|john@college.edu|CSE|1|2025-11-28
+GET  /api/teachers              # List all teachers
+GET  /api/teacher/{id}          # Get teacher by ID
+POST /api/teacher/register      # Register new teacher (requires approval)
 ```
 
-**System Meta Format:**
+### Principal Endpoints
 ```
-1005|2005|3001
+GET  /api/principal/pending-teachers     # Get pending teacher approvals
+POST /api/principal/teachers/{id}/approve # Approve teacher registration
 ```
-(nextStudentId=1005, nextTeacherId=2005, nextPrincipalId=3001)
 
-## 🔐 Security Notes
+## 🧪 Testing
 
-- Default credentials are for testing only
-- Passwords stored as plain text in files (consider hashing for production)
-- CORS enabled for localhost development
-- File-based persistence (upgrade to database for production)
+### Frontend Testing
+```bash
+cd frontend
+npm test
+```
 
-## 🐛 Troubleshooting
+Runs the test suite in interactive watch mode.
 
-### Backend won't compile
-- Install MinGW: https://www.mingw-w64.org/
-- Ensure gcc is in PATH
+### Build for Production
+```bash
+cd frontend
+npm run build
+```
 
-### Port 8080 already in use
-- Kill existing process: `taskkill /F /IM student_server_new.exe`
-- Or change port in student_server_enhanced.c
+Creates an optimized production build in the `build/` folder.
 
-### Can't connect to server
-- Verify backend terminal shows "Server running on http://localhost:8080"
-- Check Windows Firewall isn't blocking port 8080
+## 🔧 Troubleshooting
 
-### Teacher can't login after approval
-- Verify Principal approved the teacher
-- Check teachers_data.txt has `approved=1` for that teacher
-- Ensure email and password are correct
+### Backend Issues
 
-## 🚀 Future Enhancements
+**Problem**: Server won't start
+- **Solution**: Ensure port 8080 is not in use by another application
+- Check if you have administrator privileges to bind to the port
+- Verify Windows Firewall settings
 
-- [ ] Upgrade to database (PostgreSQL/MySQL)
-- [ ] Hash passwords with bcrypt
-- [ ] Add JWT authentication
-- [ ] Email notifications for approvals
-- [ ] Advanced user management
-- [ ] Grade management system
-- [ ] Attendance tracking
-- [ ] Report generation
+**Problem**: Compilation errors
+- **Solution**: Install MinGW-w64 GCC compiler
+- Ensure `-lws2_32` flag is included in the compile command
+
+### Frontend Issues
+
+**Problem**: `npm install` fails
+- **Solution**: Delete `node_modules` and `package-lock.json`, then run `npm install` again
+- Ensure Node.js version is 14 or higher
+
+**Problem**: Cannot connect to backend
+- **Solution**: Verify backend server is running on port 8080
+- Check browser console for CORS errors
+- Ensure backend server is started before frontend
+
+**Problem**: Port 3000 already in use
+- **Solution**: Kill the process using port 3000 or run on a different port:
+```bash
+set PORT=3001 && npm start
+```
+
+## 📝 Notes
+
+- All data is stored in text files in the `backend/` directory
+- Backend must be running before starting the frontend
+- The system uses Windows-specific networking (Winsock2)
+- CORS is enabled for localhost:3000 connections
+- Student IDs start from 1001, Teacher IDs from 2001, Principal IDs from 3001
+
+## 👥 Contributors
+
+- Krupanka06
 
 ## 📄 License
 
-This project is for educational purposes.
+This project is developed as part of an academic project for RVCE (RV College of Engineering).
+
+## 🔮 Future Enhancements
+
+- Database integration (MySQL/PostgreSQL)
+- Email notifications for approvals
+- File upload for documents
+- Timetable management
+- Fee management system
+- Report card generation
+- Mobile responsive design improvements
+- Real-time notifications
 
 ---
 
-**Last Updated**: November 28, 2025
-**Status**: ✅ Fully Functional
+**Made with ❤️ for RVCE - RV College of Engineering**

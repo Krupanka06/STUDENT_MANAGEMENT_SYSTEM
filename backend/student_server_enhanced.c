@@ -239,8 +239,8 @@ void handleRequest(SOCKET client, char* request) {
                 sendResponse(client, 403, "{\"error\":\"Your account has been rejected\"}");
             } else {
                 char resp[512];
-                sprintf(resp, "{\"success\":true,\"role\":\"teacher\",\"teacherId\":%d,\"name\":\"%s\",\"email\":\"%s\",\"department\":\"%s\",\"approved\":%d}",
-                    teacher->teacherId, teacher->name, teacher->email, teacher->department, teacher->approved);
+                sprintf(resp, "{\"success\":true,\"role\":\"teacher\",\"teacherId\":%d,\"name\":\"%s\",\"email\":\"%s\",\"department\":\"%s\",\"approved\":%d,\"password\":\"%s\"}",
+                    teacher->teacherId, teacher->name, teacher->email, teacher->department, teacher->approved, teacher->password);
                 sendResponse(client, 200, resp);
                 printf("  ✓ Teacher login: %s\n", teacher->name);
             }
@@ -468,8 +468,38 @@ void handleRequest(SOCKET client, char* request) {
         return;
     }
 
+    // Get student by ID (with subjects) - must come before list students
+    if (strcmp(method, "GET") == 0 && strstr(path, "/api/students/") == path) {
+        // Check if this is actually a single student request (has ID after /api/students/)
+        char pathCopy[256];
+        strncpy(pathCopy, path, sizeof(pathCopy) - 1);
+        pathCopy[sizeof(pathCopy) - 1] = '\0';
+        
+        // Remove query string if present
+        char* queryStart = strchr(pathCopy, '?');
+        if (queryStart) *queryStart = '\0';
+        
+        // Check if there's a student ID (path is longer than just "/api/students")
+        if (strlen(pathCopy) > 14) {  // "/api/students/" is 14 chars
+            int studentId = 0;
+            sscanf(path, "/api/students/%d", &studentId);
+            Student* s = findStudent(studentId);
+            if (!s) {
+                sendResponse(client, 404, "{\"error\":\"Student not found\"}");
+                return;
+            }
+            char subjectsJson[2048];
+            subjectsToJSON(s->subjects, s->subjectCount, subjectsJson);
+            char resp[4096];
+            sprintf(resp, "{\"id\":%d,\"studentId\":%d,\"name\":\"%s\",\"email\":\"%s\",\"department\":\"%s\",\"year\":%d,\"semester\":%d,\"cgpa\":%.2f,\"attendance\":%.2f,\"attendance_percent\":%.2f,\"subjects\":%s}",
+                s->studentId, s->studentId, s->name, s->email, s->department, s->year, s->semester, s->cgpa, s->attendance, s->attendance, subjectsJson);
+            sendResponse(client, 200, resp);
+            return;
+        }
+    }
+
     // Role-based student fetch (supports GET with query or POST with JSON)
-    if ((strcmp(method, "GET") == 0 || strcmp(method, "POST") == 0) && strncmp(path, "/api/students", 13) == 0) {
+    if ((strcmp(method, "GET") == 0 || strcmp(method, "POST") == 0) && (strcmp(path, "/api/students") == 0 || strstr(path, "/api/students?") == path)) {
         char role[50];
         char dept[80];
         char teacherEmail[120];
@@ -556,24 +586,6 @@ void handleRequest(SOCKET client, char* request) {
         return;
     }
 
-    // Get student by ID (with subjects)
-    if (strcmp(method, "GET") == 0 && strstr(path, "/api/students/") == path) {
-        int studentId = 0;
-        sscanf(path, "/api/students/%d", &studentId);
-        Student* s = findStudent(studentId);
-        if (!s) {
-            sendResponse(client, 404, "{\"error\":\"Student not found\"}");
-            return;
-        }
-        char subjectsJson[2048];
-        subjectsToJSON(s->subjects, s->subjectCount, subjectsJson);
-        char resp[4096];
-        sprintf(resp, "{\"id\":%d,\"studentId\":%d,\"name\":\"%s\",\"email\":\"%s\",\"department\":\"%s\",\"year\":%d,\"semester\":%d,\"cgpa\":%.2f,\"attendance\":%.2f,\"attendance_percent\":%.2f,\"subjects\":%s}",
-            s->studentId, s->studentId, s->name, s->email, s->department, s->year, s->semester, s->cgpa, s->attendance, s->attendance, subjectsJson);
-        sendResponse(client, 200, resp);
-        return;
-    }
-
     // Update subject marks and attendance (role-based)
     if (strcmp(method, "PUT") == 0 && strstr(path, "/api/students/") && strstr(path, "/subjects/")) {
         int studentId = 0;
@@ -595,21 +607,50 @@ void handleRequest(SOCKET client, char* request) {
         parseJSON(body, "principalPassword", principalPassword);
 
         int authorized = 0;
+        char authError[256] = "";
+        
+        printf("  [DEBUG] Update Subject - Role: '%s', Email: '%s', Pass: '%s', PrincipalPass: '%s'\n", 
+            role, teacherEmail, teacherPassword, principalPassword);
+        
         if (strcmp(role, "teacher") == 0) {
             // Teacher must be from same department
             Teacher* t = findTeacherByEmail(teacherEmail);
-            if (t && t->approved == 1 && strcmp(t->password, teacherPassword) == 0 && strcmp(t->department, s->department) == 0) {
-                authorized = 1;
+            if (!t) {
+                sprintf(authError, "{\"error\":\"Teacher not found with email: %s\"}", teacherEmail);
+                printf("  [DEBUG] Teacher not found: %s\n", teacherEmail);
+            } else {
+                printf("  [DEBUG] Found teacher: %s, approved=%d, password=%s, dept=%s\n", 
+                    t->name, t->approved, t->password, t->department);
+                
+                if (t->approved != 1) {
+                    sprintf(authError, "{\"error\":\"Teacher not approved (status: %d)\"}", t->approved);
+                } else if (strcmp(t->password, teacherPassword) != 0) {
+                    strcpy(authError, "{\"error\":\"Invalid teacher password\"}");
+                } else if (strcmp(t->department, s->department) != 0) {
+                    sprintf(authError, "{\"error\":\"Department mismatch: teacher=%s, student=%s\"}", t->department, s->department);
+                } else {
+                    authorized = 1;
+                }
             }
         } else if (strcmp(role, "principal") == 0) {
             // Principal can update any student
+            printf("  [DEBUG] Checking principal password: '%s' vs '%s'\n", principalPassword, PRINCIPAL_PASSWORD);
             if (strcmp(principalPassword, PRINCIPAL_PASSWORD) == 0) {
                 authorized = 1;
+            } else {
+                strcpy(authError, "{\"error\":\"Invalid principal password\"}");
             }
+        } else {
+            sprintf(authError, "{\"error\":\"Invalid role: %s\"}", role);
         }
 
         if (!authorized) {
-            sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role or department mismatch\"}");
+            if (strlen(authError) == 0) {
+                sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role or department mismatch\"}");
+            } else {
+                sendResponse(client, 403, authError);
+            }
+            printf("  ✗ Authorization failed for subject update: %s\n", authError);
             return;
         }
 
@@ -676,19 +717,54 @@ void handleRequest(SOCKET client, char* request) {
         parseJSON(body, "principalPassword", principalPassword);
 
         int authorized = 0;
+        char authError[256] = "";
+        
+        printf("  [DEBUG] Update Academics - Role: '%s', Email: '%s', Pass: '%s', PrincipalPass: '%s'\n", 
+            role, teacherEmail, teacherPassword, principalPassword);
+        
         if (strcmp(role, "teacher") == 0) {
             Teacher* t = findTeacherByEmail(teacherEmail);
-            if (t && t->approved == 1 && strcmp(t->password, teacherPassword) == 0) {
-                // ensure teacher can only update own department
-                Student* target = findStudent(studentId);
-                if (target && strcmp(target->department, t->department) == 0) authorized = 1;
+            if (!t) {
+                sprintf(authError, "{\"error\":\"Teacher not found with email: %s\"}", teacherEmail);
+                printf("  [DEBUG] Teacher not found: %s\n", teacherEmail);
+            } else {
+                printf("  [DEBUG] Found teacher: %s, approved=%d, password=%s, dept=%s\n", 
+                    t->name, t->approved, t->password, t->department);
+                
+                if (t->approved != 1) {
+                    sprintf(authError, "{\"error\":\"Teacher not approved (status: %d)\"}", t->approved);
+                } else if (strcmp(t->password, teacherPassword) != 0) {
+                    strcpy(authError, "{\"error\":\"Invalid teacher password\"}");
+                } else {
+                    // ensure teacher can only update own department
+                    Student* target = findStudent(studentId);
+                    if (!target) {
+                        strcpy(authError, "{\"error\":\"Student not found\"}");
+                    } else if (strcmp(target->department, t->department) != 0) {
+                        sprintf(authError, "{\"error\":\"Department mismatch: teacher=%s, student=%s\"}", t->department, target->department);
+                    } else {
+                        authorized = 1;
+                    }
+                }
             }
         } else if (strcmp(role, "principal") == 0) {
-            if (strcmp(principalPassword, PRINCIPAL_PASSWORD) == 0) authorized = 1;
+            printf("  [DEBUG] Checking principal password: '%s' vs '%s'\n", principalPassword, PRINCIPAL_PASSWORD);
+            if (strcmp(principalPassword, PRINCIPAL_PASSWORD) == 0) {
+                authorized = 1;
+            } else {
+                strcpy(authError, "{\"error\":\"Invalid principal password\"}");
+            }
+        } else {
+            sprintf(authError, "{\"error\":\"Invalid role: %s\"}", role);
         }
 
         if (!authorized) {
-            sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role\"}");
+            if (strlen(authError) == 0) {
+                sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role\"}");
+            } else {
+                sendResponse(client, 403, authError);
+            }
+            printf("  ✗ Authorization failed for academics update: %s\n", authError);
             return;
         }
 
@@ -734,21 +810,52 @@ void handleRequest(SOCKET client, char* request) {
         parseJSON(body, "principalPassword", principalPassword);
 
         int authorized = 0;
+        char authError[256] = "";
+        
+        printf("  [DEBUG] Assign Subject - Role: '%s', Email: '%s', Pass: '%s', PrincipalPass: '%s'\n", 
+            role, teacherEmail, teacherPassword, principalPassword);
+        
         if (strcmp(role, "teacher") == 0) {
             // Teacher must be from same department
             Teacher* t = findTeacherByEmail(teacherEmail);
-            if (t && t->approved == 1 && strcmp(t->password, teacherPassword) == 0 && strcmp(t->department, s->department) == 0) {
-                authorized = 1;
+            if (!t) {
+                sprintf(authError, "{\"error\":\"Teacher not found with email: %s\"}", teacherEmail);
+                printf("  [DEBUG] Teacher not found: %s\n", teacherEmail);
+            } else {
+                printf("  [DEBUG] Found teacher: %s, approved=%d, password=%s, dept=%s\n", 
+                    t->name, t->approved, t->password, t->department);
+                printf("  [DEBUG] Student dept=%s, Passwords match=%d\n", 
+                    s->department, strcmp(t->password, teacherPassword) == 0);
+                
+                if (t->approved != 1) {
+                    sprintf(authError, "{\"error\":\"Teacher not approved (status: %d)\"}", t->approved);
+                } else if (strcmp(t->password, teacherPassword) != 0) {
+                    strcpy(authError, "{\"error\":\"Invalid teacher password\"}");
+                } else if (strcmp(t->department, s->department) != 0) {
+                    sprintf(authError, "{\"error\":\"Department mismatch: teacher=%s, student=%s\"}", t->department, s->department);
+                } else {
+                    authorized = 1;
+                }
             }
         } else if (strcmp(role, "principal") == 0) {
             // Principal can assign subjects to any student
+            printf("  [DEBUG] Checking principal password: '%s' vs '%s'\n", principalPassword, PRINCIPAL_PASSWORD);
             if (strcmp(principalPassword, PRINCIPAL_PASSWORD) == 0) {
                 authorized = 1;
+            } else {
+                strcpy(authError, "{\"error\":\"Invalid principal password\"}");
             }
+        } else {
+            sprintf(authError, "{\"error\":\"Invalid role: %s\"}", role);
         }
 
         if (!authorized) {
-            sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role or department mismatch\"}");
+            if (strlen(authError) == 0) {
+                sendResponse(client, 403, "{\"error\":\"Forbidden: insufficient role or department mismatch\"}");
+            } else {
+                sendResponse(client, 403, authError);
+            }
+            printf("  ✗ Authorization failed for subject assignment: %s\n", authError);
             return;
         }
 
@@ -936,7 +1043,7 @@ void subjectsToJSON(Subject* subjects, int count, char* output) {
         if (i > 0) strcat(output, ",");
         char subjStr[512];
         int total = subjects[i].mid1 + subjects[i].mid2 + subjects[i].final;
-        sprintf(subjStr, "{\"subjectId\":\"%s\",\"name\":\"%s\",\"marks\":{\"mid1\":%d,\"mid2\":%d,\"final\":%d,\"total\":%d},\"attendance_percent\":%.2f,\"remarks\":\"%s\"}",
+        sprintf(subjStr, "{\"subjectId\":\"%s\",\"name\":\"%s\",\"mid1\":%d,\"mid2\":%d,\"final\":%d,\"total\":%d,\"attendance_percent\":%.2f,\"remarks\":\"%s\"}",
             subjects[i].subjectId, subjects[i].name, subjects[i].mid1, subjects[i].mid2, subjects[i].final, total, subjects[i].attendance_percent, subjects[i].remarks);
         strcat(output, subjStr);
     }
@@ -955,72 +1062,86 @@ Subject* findStudentSubject(Student* s, char* subjectId) {
 
 
 void saveToFile() {
-    // Save meta (next IDs)
-    FILE* meta = fopen("system_meta.txt", "w");
-    if (meta) {
-        fprintf(meta, "%d|%d|%d\n", g_system.nextStudentId, g_system.nextTeacherId, g_system.nextPrincipalId);
-        fclose(meta);
+    FILE* f = fopen("database.json", "w");
+    if (!f) {
+        printf("Error: Cannot create database.json\n");
+        return;
     }
 
+    fprintf(f, "{\n");
+    fprintf(f, "  \"nextStudentId\": %d,\n", g_system.nextStudentId);
+    fprintf(f, "  \"nextTeacherId\": %d,\n", g_system.nextTeacherId);
+    fprintf(f, "  \"nextPrincipalId\": %d,\n", g_system.nextPrincipalId);
+    
     // Save students with subjects
-    FILE* sf = fopen("students_data.txt", "w");
-    if (sf) {
-        Student* s = g_system.students;
-        while (s) {
-            // Write student basic info
-            fprintf(sf, "STUDENT|%d|%s|%s|%s|%s|%d|%d|%.2f|%.2f\n",
-                s->studentId, s->name, s->password, s->email, s->department, s->year, s->semester, s->cgpa, s->attendance);
-            
-            // Write subjects for this student
-            for (int i = 0; i < s->subjectCount; i++) {
-                fprintf(sf, "  SUBJECT|%s|%s|%d|%d|%d|%.2f|%s\n",
-                    s->subjects[i].subjectId, s->subjects[i].name, s->subjects[i].mid1, s->subjects[i].mid2, s->subjects[i].final, 
-                    s->subjects[i].attendance_percent, s->subjects[i].remarks);
-            }
-            s = s->next;
+    fprintf(f, "  \"students\": [\n");
+    Student* s = g_system.students;
+    int firstStudent = 1;
+    while (s) {
+        if (!firstStudent) fprintf(f, ",\n");
+        firstStudent = 0;
+        
+        fprintf(f, "    {\n");
+        fprintf(f, "      \"studentId\": %d,\n", s->studentId);
+        fprintf(f, "      \"name\": \"%s\",\n", s->name);
+        fprintf(f, "      \"password\": \"%s\",\n", s->password);
+        fprintf(f, "      \"email\": \"%s\",\n", s->email);
+        fprintf(f, "      \"department\": \"%s\",\n", s->department);
+        fprintf(f, "      \"year\": %d,\n", s->year);
+        fprintf(f, "      \"semester\": %d,\n", s->semester);
+        fprintf(f, "      \"cgpa\": %.2f,\n", s->cgpa);
+        fprintf(f, "      \"attendance\": %.2f,\n", s->attendance);
+        fprintf(f, "      \"subjects\": [\n");
+        
+        for (int i = 0; i < s->subjectCount; i++) {
+            if (i > 0) fprintf(f, ",\n");
+            fprintf(f, "        {\n");
+            fprintf(f, "          \"subjectId\": \"%s\",\n", s->subjects[i].subjectId);
+            fprintf(f, "          \"name\": \"%s\",\n", s->subjects[i].name);
+            fprintf(f, "          \"mid1\": %d,\n", s->subjects[i].mid1);
+            fprintf(f, "          \"mid2\": %d,\n", s->subjects[i].mid2);
+            fprintf(f, "          \"final\": %d,\n", s->subjects[i].final);
+            fprintf(f, "          \"attendance_percent\": %.2f,\n", s->subjects[i].attendance_percent);
+            fprintf(f, "          \"remarks\": \"%s\"\n", s->subjects[i].remarks);
+            fprintf(f, "        }");
         }
-        fclose(sf);
+        
+        fprintf(f, "\n      ]\n");
+        fprintf(f, "    }");
+        s = s->next;
     }
-
+    fprintf(f, "\n  ],\n");
+    
     // Save teachers
-    FILE* tf = fopen("teachers_data.txt", "w");
-    if (tf) {
-        Teacher* t = g_system.teachers;
-        while (t) {
-            fprintf(tf, "TEACHER|%d|%s|%s|%s|%s|%d|%s\n",
-                t->teacherId, t->name, t->password, t->email, t->department, t->approved, t->approvalDate);
-            t = t->next;
-        }
-        fclose(tf);
+    fprintf(f, "  \"teachers\": [\n");
+    Teacher* t = g_system.teachers;
+    int firstTeacher = 1;
+    while (t) {
+        if (!firstTeacher) fprintf(f, ",\n");
+        firstTeacher = 0;
+        
+        fprintf(f, "    {\n");
+        fprintf(f, "      \"teacherId\": %d,\n", t->teacherId);
+        fprintf(f, "      \"name\": \"%s\",\n", t->name);
+        fprintf(f, "      \"password\": \"%s\",\n", t->password);
+        fprintf(f, "      \"email\": \"%s\",\n", t->email);
+        fprintf(f, "      \"department\": \"%s\",\n", t->department);
+        fprintf(f, "      \"approved\": %d,\n", t->approved);
+        fprintf(f, "      \"approvalDate\": \"%s\"\n", t->approvalDate);
+        fprintf(f, "    }");
+        t = t->next;
     }
-
-    // Save pending approvals (teacher IDs)
-    FILE* af = fopen("approvals.txt", "w");
-    if (af) {
-        Teacher* t2 = g_system.teachers;
-        while (t2) {
-            if (t2->approved == 0) {
-                fprintf(af, "%d\n", t2->teacherId);
-            }
-            t2 = t2->next;
-        }
-        fclose(af);
-    }
+    fprintf(f, "\n  ]\n");
+    
+    fprintf(f, "}\n");
+    fclose(f);
 }
 
 void loadFromFile() {
-    // Load meta
-    FILE* meta = fopen("system_meta.txt", "r");
-    if (meta) {
-        fscanf(meta, "%d|%d|%d\n", &g_system.nextStudentId, &g_system.nextTeacherId, &g_system.nextPrincipalId);
-        fclose(meta);
-    }
-
-    // Load students with subjects
-    FILE* sf = fopen("students_data.txt", "r");
-    if (!sf) {
-        // No students file -> create default student
-        printf("Creating new system with default student...\n");
+    FILE* f = fopen("database.json", "r");
+    if (!f) {
+        printf("No existing database found. Creating new system...\n");
+        // Create default student
         Student* stu = (Student*)malloc(sizeof(Student));
         stu->studentId = g_system.nextStudentId++;
         strcpy(stu->name, "Default Student");
@@ -1036,58 +1157,155 @@ void loadFromFile() {
         g_system.students = stu;
         saveToFile();
         printf("Default student created: ID=%d, Password=%s\n", stu->studentId, DEFAULT_STUDENT_PASSWORD);
-    } else {
-        char line[1024];
-        Student* currentStudent = NULL;
-        while (fgets(line, sizeof(line), sf)) {
-            if (strncmp(line, "STUDENT|", 8) == 0) {
+        return;
+    }
+
+    // Read entire file
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    char* content = (char*)malloc(fsize + 1);
+    fread(content, 1, fsize, f);
+    content[fsize] = '\0';
+    fclose(f);
+
+    // Parse JSON metadata
+    g_system.nextStudentId = parseJSONInt(content, "nextStudentId");
+    g_system.nextTeacherId = parseJSONInt(content, "nextTeacherId");
+    g_system.nextPrincipalId = parseJSONInt(content, "nextPrincipalId");
+
+    // Parse students array
+    char* studentsArray = strstr(content, "\"students\":");
+    if (studentsArray) {
+        char* studentStart = strchr(studentsArray, '[');
+        if (studentStart) {
+            char* current = studentStart + 1;
+            while (*current && *current != ']') {
+                // Find next student object
+                char* objStart = strchr(current, '{');
+                if (!objStart || objStart > strchr(current, ']')) break;
+                
+                char* objEnd = objStart;
+                int braceCount = 1;
+                objEnd++;
+                while (*objEnd && braceCount > 0) {
+                    if (*objEnd == '{') braceCount++;
+                    else if (*objEnd == '}') braceCount--;
+                    objEnd++;
+                }
+                
+                // Extract student JSON
+                int len = objEnd - objStart;
+                char* studentJSON = (char*)malloc(len + 1);
+                strncpy(studentJSON, objStart, len);
+                studentJSON[len] = '\0';
+                
+                // Parse student
                 Student* s = (Student*)malloc(sizeof(Student));
-                sscanf(line, "STUDENT|%d|%99[^|]|%99[^|]|%119[^|]|%79[^|]|%d|%d|%lf|%lf",
-                    &s->studentId, s->name, s->password, s->email, s->department, &s->year, &s->semester, &s->cgpa, &s->attendance);
+                memset(s, 0, sizeof(Student));
+                s->studentId = parseJSONInt(studentJSON, "studentId");
+                parseJSON(studentJSON, "name", s->name);
+                parseJSON(studentJSON, "password", s->password);
+                parseJSON(studentJSON, "email", s->email);
+                parseJSON(studentJSON, "department", s->department);
+                s->year = parseJSONInt(studentJSON, "year");
+                s->semester = parseJSONInt(studentJSON, "semester");
+                s->cgpa = parseJSONNumber(studentJSON, "cgpa");
+                s->attendance = parseJSONNumber(studentJSON, "attendance");
                 s->subjectCount = 0;
+                
+                // Parse subjects for this student
+                char* subjArray = strstr(studentJSON, "\"subjects\":");
+                if (subjArray) {
+                    char* subjStart = strchr(subjArray, '[');
+                    if (subjStart) {
+                        char* subjCurrent = subjStart + 1;
+                        while (*subjCurrent && *subjCurrent != ']' && s->subjectCount < 10) {
+                            char* subjObjStart = strchr(subjCurrent, '{');
+                            if (!subjObjStart || subjObjStart > strchr(subjCurrent, ']')) break;
+                            
+                            char* subjObjEnd = subjObjStart;
+                            int subjBraces = 1;
+                            subjObjEnd++;
+                            while (*subjObjEnd && subjBraces > 0) {
+                                if (*subjObjEnd == '{') subjBraces++;
+                                else if (*subjObjEnd == '}') subjBraces--;
+                                subjObjEnd++;
+                            }
+                            
+                            int subjLen = subjObjEnd - subjObjStart;
+                            char* subjJSON = (char*)malloc(subjLen + 1);
+                            strncpy(subjJSON, subjObjStart, subjLen);
+                            subjJSON[subjLen] = '\0';
+                            
+                            Subject* subj = &s->subjects[s->subjectCount];
+                            memset(subj, 0, sizeof(Subject));
+                            parseJSON(subjJSON, "subjectId", subj->subjectId);
+                            parseJSON(subjJSON, "name", subj->name);
+                            subj->mid1 = parseJSONInt(subjJSON, "mid1");
+                            subj->mid2 = parseJSONInt(subjJSON, "mid2");
+                            subj->final = parseJSONInt(subjJSON, "final");
+                            subj->attendance_percent = parseJSONNumber(subjJSON, "attendance_percent");
+                            parseJSON(subjJSON, "remarks", subj->remarks);
+                            
+                            s->subjectCount++;
+                            free(subjJSON);
+                            subjCurrent = subjObjEnd;
+                        }
+                    }
+                }
+                
                 s->next = g_system.students;
                 g_system.students = s;
-                currentStudent = s;
-            } else if (strncmp(line, "  SUBJECT|", 10) == 0) {
-                if (currentStudent && currentStudent->subjectCount < 10) {
-                    Subject* subj = &currentStudent->subjects[currentStudent->subjectCount];
-                    sscanf(line, "  SUBJECT|%19[^|]|%99[^|]|%d|%d|%d|%lf|%199[^\n]",
-                        subj->subjectId, subj->name, &subj->mid1, &subj->mid2, &subj->final, &subj->attendance_percent, subj->remarks);
-                    currentStudent->subjectCount++;
-                }
+                free(studentJSON);
+                current = objEnd;
             }
         }
-        fclose(sf);
     }
 
-    // Load teachers
-    FILE* tf = fopen("teachers_data.txt", "r");
-    if (tf) {
-        char line[1024];
-        while (fgets(line, sizeof(line), tf)) {
-            if (strncmp(line, "TEACHER|", 8) == 0) {
+    // Parse teachers array
+    char* teachersArray = strstr(content, "\"teachers\":");
+    if (teachersArray) {
+        char* teacherStart = strchr(teachersArray, '[');
+        if (teacherStart) {
+            char* current = teacherStart + 1;
+            while (*current && *current != ']') {
+                char* objStart = strchr(current, '{');
+                if (!objStart || objStart > strchr(current, ']')) break;
+                
+                char* objEnd = objStart;
+                int braceCount = 1;
+                objEnd++;
+                while (*objEnd && braceCount > 0) {
+                    if (*objEnd == '{') braceCount++;
+                    else if (*objEnd == '}') braceCount--;
+                    objEnd++;
+                }
+                
+                int len = objEnd - objStart;
+                char* teacherJSON = (char*)malloc(len + 1);
+                strncpy(teacherJSON, objStart, len);
+                teacherJSON[len] = '\0';
+                
                 Teacher* t = (Teacher*)malloc(sizeof(Teacher));
-                sscanf(line, "TEACHER|%d|%99[^|]|%99[^|]|%119[^|]|%79[^|]|%d|%49[^\n]",
-                    &t->teacherId, t->name, t->password, t->email, t->department, &t->approved, t->approvalDate);
+                memset(t, 0, sizeof(Teacher));
+                t->teacherId = parseJSONInt(teacherJSON, "teacherId");
+                parseJSON(teacherJSON, "name", t->name);
+                parseJSON(teacherJSON, "password", t->password);
+                parseJSON(teacherJSON, "email", t->email);
+                parseJSON(teacherJSON, "department", t->department);
+                t->approved = parseJSONInt(teacherJSON, "approved");
+                parseJSON(teacherJSON, "approvalDate", t->approvalDate);
+                
                 t->next = g_system.teachers;
                 g_system.teachers = t;
+                free(teacherJSON);
+                current = objEnd;
             }
         }
-        fclose(tf);
     }
 
-    // Load pending approvals (if any) and ensure teachers are marked pending
-    FILE* af = fopen("approvals.txt", "r");
-    if (af) {
-        int tid;
-        while (fscanf(af, "%d\n", &tid) == 1) {
-            Teacher* t = findTeacher(tid);
-            if (t) {
-                t->approved = 0; // ensure pending
-            }
-        }
-        fclose(af);
-    }
-
-    printf("System data loaded successfully\n");
+    free(content);
+    printf("System data loaded successfully from database.json\n");
 }

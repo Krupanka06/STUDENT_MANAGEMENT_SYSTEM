@@ -28,6 +28,22 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
     }
   }, [student]);
 
+  // Refresh student data from API
+  const refreshStudentData = async () => {
+    if (!student?.studentId || !teacher) return;
+    try {
+      const res = await fetch(`http://localhost:8080/api/students/${student.studentId}?role=teacher&department=${teacher?.department || ''}`);
+      if (res.ok) {
+        const freshData = await res.json();
+        setStudentData(freshData);
+        setCgpa(freshData?.cgpa || 0);
+        setOverallAttendance(freshData?.attendance || 0);
+      }
+    } catch (err) {
+      console.error('Error refreshing student data:', err);
+    }
+  };
+
   if (!isOpen || !studentData) return null;
 
   const modalStyle = {
@@ -164,7 +180,13 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
 
       setSuccessMsg('✓ Subject assigned successfully!');
       setNewSubject({ subjectId: '', name: '', mid1: 0, mid2: 0, final: 0, attendance_percent: 0 });
-      onSave(); // Refresh parent
+      
+      // Refresh student data in modal and parent
+      await refreshStudentData();
+      if (onSave) {
+        onSave();
+      }
+      
       setTimeout(() => setSuccessMsg(''), 2000);
     } catch (err) {
       setError(err.message);
@@ -202,9 +224,9 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
       };
 
       // Check if teacher is principal
-      if (teacher?.email === 'principal@admin.com') {
+      if (teacher?.role === 'principal' || teacher?.principalPassword) {
         payload.role = 'principal';
-        payload.principalPassword = teacher?.password;
+        payload.principalPassword = teacher?.principalPassword || 'principal123';
       } else {
         payload.role = 'teacher';
         payload.email = teacher?.email;
@@ -225,7 +247,13 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
       setSuccessMsg('✓ Subject updated successfully!');
       setEditingSubjectId(null);
       setEditingSubject(null);
-      onSave(); // Refresh parent
+      
+      // Refresh student data in modal and parent
+      await refreshStudentData();
+      if (onSave) {
+        onSave();
+      }
+      
       setTimeout(() => setSuccessMsg(''), 2000);
     } catch (err) {
       setError(err.message);
@@ -257,9 +285,9 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
       };
 
       // Check if teacher is principal
-      if (teacher?.email === 'principal@admin.com') {
+      if (teacher?.role === 'principal' || teacher?.principalPassword) {
         payload.role = 'principal';
-        payload.principalPassword = teacher?.password;
+        payload.principalPassword = teacher?.principalPassword || 'principal123';
       } else {
         payload.role = 'teacher';
         payload.email = teacher?.email;
@@ -278,7 +306,13 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
       }
 
       setSuccessMsg('✓ Academics updated successfully!');
-      onSave(); // Refresh parent
+      
+      // Refresh student data in modal and parent
+      await refreshStudentData();
+      if (onSave) {
+        onSave();
+      }
+      
       setTimeout(() => setSuccessMsg(''), 2000);
     } catch (err) {
       setError(err.message);
@@ -407,7 +441,7 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
                             onChange={(e) => setEditingSubject({ ...editingSubject, mid1: parseInt(e.target.value) || 0 })}
                           />
                         ) : (
-                          subj.marks?.mid1 || 0
+                          subj.mid1 || 0
                         )}
                       </td>
                       <td style={tdStyle}>
@@ -419,7 +453,7 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
                             onChange={(e) => setEditingSubject({ ...editingSubject, mid2: parseInt(e.target.value) || 0 })}
                           />
                         ) : (
-                          subj.marks?.mid2 || 0
+                          subj.mid2 || 0
                         )}
                       </td>
                       <td style={tdStyle}>
@@ -431,7 +465,7 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
                             onChange={(e) => setEditingSubject({ ...editingSubject, final: parseInt(e.target.value) || 0 })}
                           />
                         ) : (
-                          subj.marks?.final || 0
+                          subj.final || 0
                         )}
                       </td>
                       <td style={tdStyle}>
@@ -471,9 +505,9 @@ const ManageSubjectsModal = ({ isOpen, student, teacher, onClose, onSave }) => {
                             onClick={() => {
                               setEditingSubjectId(subj.subjectId);
                               setEditingSubject({ 
-                                mid1: subj.marks?.mid1 || 0,
-                                mid2: subj.marks?.mid2 || 0,
-                                final: subj.marks?.final || 0,
+                                mid1: subj.mid1 || 0,
+                                mid2: subj.mid2 || 0,
+                                final: subj.final || 0,
                                 attendance_percent: subj.attendance_percent || 0,
                                 remarks: subj.remarks || ''
                               });

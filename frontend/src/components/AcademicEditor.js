@@ -13,9 +13,9 @@ import { useState } from 'react';
 const AcademicEditor = ({ subject, studentId, userRole, teacherEmail, onSave, showMessage }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    mid1: subject?.marks?.mid1 || 0,
-    mid2: subject?.marks?.mid2 || 0,
-    final: subject?.marks?.final || 0,
+    mid1: subject?.mid1 || 0,
+    mid2: subject?.mid2 || 0,
+    final: subject?.final || 0,
     attendance_percent: subject?.attendance_percent || 0,
     remarks: subject?.remarks || ''
   });
@@ -35,9 +35,9 @@ const AcademicEditor = ({ subject, studentId, userRole, teacherEmail, onSave, sh
     setAuthPassword('');
     setError('');
     setFormData({
-      mid1: subject?.marks?.mid1 || 0,
-      mid2: subject?.marks?.mid2 || 0,
-      final: subject?.marks?.final || 0,
+      mid1: subject?.mid1 || 0,
+      mid2: subject?.mid2 || 0,
+      final: subject?.final || 0,
       attendance_percent: subject?.attendance_percent || 0,
       remarks: subject?.remarks || ''
     });
@@ -272,19 +272,19 @@ const AcademicEditor = ({ subject, studentId, userRole, teacherEmail, onSave, sh
           <div style={marksGridStyle}>
             <div style={markItemStyle}>
               <span style={markLabelStyle}>Mid 1</span>
-              <span style={markValueStyle}>{subject?.marks?.mid1 || 0}</span>
+              <span style={markValueStyle}>{subject?.mid1 || 0}</span>
             </div>
             <div style={markItemStyle}>
               <span style={markLabelStyle}>Mid 2</span>
-              <span style={markValueStyle}>{subject?.marks?.mid2 || 0}</span>
+              <span style={markValueStyle}>{subject?.mid2 || 0}</span>
             </div>
             <div style={markItemStyle}>
               <span style={markLabelStyle}>Final</span>
-              <span style={markValueStyle}>{subject?.marks?.final || 0}</span>
+              <span style={markValueStyle}>{subject?.final || 0}</span>
             </div>
             <div style={markItemStyle}>
               <span style={markLabelStyle}>Total</span>
-              <span style={markValueStyle}>{subject?.marks?.total || 0}</span>
+              <span style={markValueStyle}>{subject?.total || 0}</span>
             </div>
           </div>
 

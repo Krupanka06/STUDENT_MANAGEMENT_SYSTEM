@@ -500,7 +500,7 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
       <ManageSubjectsModal
         isOpen={showModal}
         student={selectedStudent}
-        teacher={{ email: 'principal@admin.com', password: 'principal123' }}
+        teacher={{ role: 'principal', principalPassword: 'principal123' }}
         onClose={() => {
           setShowModal(false);
           setSelectedStudent(null);
@@ -509,6 +509,7 @@ const PrincipalDashboard = ({ onLogout, showMessage }) => {
           fetchData();
           setShowModal(false);
           setSelectedStudent(null);
+          showMessage('✓ Changes saved successfully!', 'success');
         }}
       />
     </div>

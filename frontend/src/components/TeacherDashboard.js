@@ -4,6 +4,7 @@ import ManageSubjectsModal from './ManageSubjectsModal';
 
 const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
   const [teacher, setTeacher] = useState(teacherData || {});
+  const [teacherPassword, setTeacherPassword] = useState(teacherData?.password || '');
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
@@ -12,9 +13,12 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
+    if (teacherData?.password) {
+      setTeacherPassword(teacherData.password);
+    }
     refreshTeacher();
     fetchStudents();
-  }, []);
+  }, [teacherData]);
 
   const refreshTeacher = async () => {
     if (!teacherData?.teacherId) return;
@@ -361,7 +365,7 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
       <ManageSubjectsModal
         isOpen={showModal}
         student={selectedStudent}
-        teacher={teacher}
+        teacher={{ ...teacher, password: teacherPassword }}
         onClose={() => {
           setShowModal(false);
           setSelectedStudent(null);
@@ -370,6 +374,7 @@ const TeacherDashboard = ({ teacherData, onLogout, showMessage }) => {
           refreshStudents();
           setShowModal(false);
           setSelectedStudent(null);
+          showMessage('✓ Changes saved successfully!', 'success');
         }}
       />
     </div>

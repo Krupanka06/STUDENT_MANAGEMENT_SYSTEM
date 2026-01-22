@@ -1,0 +1,54 @@
+{
+  "nextStudentId": 1003,
+  "nextTeacherId": 2002,
+  "nextPrincipalId": 3001,
+  "students": [
+    {
+      "studentId": 1001,
+      "name": "Default Student",
+      "password": "student123",
+      "email": "student@example.edu",
+      "department": "CSE",
+      "year": 1,
+      "semester": 1,
+      "cgpa": 0.00,
+      "attendance": 0.00,
+      "subjects": [
+
+      ]
+    },
+    {
+      "studentId": 1002,
+      "name": "arun",
+      "password": "1233",
+      "email": "arun@gmail.com",
+      "department": "ECE",
+      "year": 2,
+      "semester": 1,
+      "cgpa": 10.00,
+      "attendance": 60.00,
+      "subjects": [
+        {
+          "subjectId": "CS101",
+          "name": "DSA",
+          "mid1": 34,
+          "mid2": 55,
+          "final": 70,
+          "attendance_percent": 75.00,
+          "remarks": ""
+        }
+      ]
+    }
+  ],
+  "teachers": [
+    {
+      "teacherId": 2001,
+      "name": "akhilesh",
+      "password": "1234",
+      "email": "akhilesh404@gmail.com",
+      "department": "ECE",
+      "approved": 1,
+      "approvalDate": "2026-01-18 11:42:47"
+    }
+  ]
+}

@@ -1,7 +1,1 @@
-TEACHER|2001|Ravi R|1234|ravir.is25@rvce.edu.in|CSE|1|2025-12-22 23:29:52
-TEACHER|2005|Krupanka R|1234|nithishsnithishs44@gmail.com|CSE|1|2025-11-28 19:22:27
-TEACHER|2002|New Teacher|teach123|new@teacher.com|CS|1|2025-11-28 01:20:36
-TEACHER|2001|Demo Teacher|teacher123|demo.teacher@example.edu|Physics|1|2025-12-22 23:27:17
-TEACHER|2001|Krupanka R|1234|krupankaramesha@gmail.com|CSE|-1|2025-11-28 19:22:30
-TEACHER|2003|Krupanka R|1234|rkrupanka.cs25@rvce.edu.in|CSE|1|2025-11-28 19:22:09
-TEACHER|2004|Pending Teacher|pass123|pending@teacher.com|Math|1|2025-11-28 01:27:59
+TEACHER|2002|krupanka|1234|krupa420@gmail.com|CSE|1|2026-01-18 11:12:46
