@@ -379,7 +379,7 @@ set PORT=3001 && npm start
 
 ## 👥 Contributors
 
-- Krupanka06
+- Krupanka R  
 - Ravi R
 - Nitish S
 - Amith Gowda
